@@ -2,10 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-void im(int a, int b);
-void aplica(int *b, char c[], int m[][50], int xj, int yj, int *item1,
-		int *item2);
-
 void im(int a, int b) {
 	if (a == 0) {
 		printf(" ");
@@ -129,7 +125,7 @@ int main() {
 	fscanf(f, "%d", &y);
 	fscanf(f, "%d", &x);
 
-	int mapa[y][x];
+	int mapa[50][50];
 	int q, x_2, y_2;
 	int item_1 = 0, item_2 = 0;
 	char c[20];
