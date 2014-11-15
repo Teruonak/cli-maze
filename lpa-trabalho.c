@@ -3,11 +3,14 @@
 #include <stdlib.h>
 
 // function sign declaration
-void printMaze(int a, int b);
 void doCommand(int *b, char c[], int m[50][50], int xj, int yj, int *item1,
 		int *item2);
-int *fillMaze(FILE *f, char fileName[100], int (*maze)[50], int *rowLength,
-		int *colLength, int *goal, int errorStatus);
+int fillMaze(FILE *f, int (*maze)[50], int *rowLength,
+		int *colLength, int *goal, int *errorStatus);
+
+void printMaze(int rowLength, int colLength, int maze[50][50],
+		int playerDirection, int *playerX, int *playerY);
+void printMazeUnit(int unit, int playerDirection);
 
 int main() {
 	// configurations
@@ -18,12 +21,21 @@ int main() {
 	int maze[50][50];
 	int colLength, rowLength;
 	int playerDirection = 0, playerX, playerY;
-	int numberItem1 = 0, nubmerItem2 = 0;
+	int numberItem1 = 0;
+	int nubmerItem2 = 0;
 	char command[20];
 	int *goal[3];
 	int errorStatus[5] = { 0, 0, 0, 0, 0 };
 
-	fillMaze(file, fileName, maze, &rowLength, &colLength, goal, errorStatus);
+	puts("Started");
+
+	file = fopen(fileName, "r");
+	if (!file) {
+		printf("Error to open the file: %s", fileName);
+		exit(0);
+	}
+	fillMaze(file, maze, &rowLength, &colLength, &goal[0],
+			errorStatus);
 
 	if (errorStatus[0]) {
 		puts("Could not open file");
@@ -35,7 +47,8 @@ int main() {
 	}
 	if (errorStatus[2]) {
 		printf(
-				"The length of row: %d or column: %d is lower than 1 or greater than 50", rowLength, colLength);
+				"The length of row: %d or column: %d is lower than 1 or greater than 50",
+				rowLength, colLength);
 		return 0;
 	}
 	if (errorStatus[3]) {
@@ -47,24 +60,30 @@ int main() {
 		return 0;
 	}
 
-	playerDirection = 0;
-
-	while (goal[0] == 3 || goal[1] == 4 || goal[2] == 5) {
-		system("cls");
-
-		printMaze(rowLength, colLength, maze, playerDirection, &playerX,
-				&playerY);
-
+	// test fillMaze
+	for (int i = 0; i < rowLength; ++i) {
+		for (int j = 0; j < colLength; ++j) {
+			printf("%d", maze[i][j]);
+		}
 		puts("");
-		puts("");
-		printf("item 1: %d", item_2);
-		printf("item 2: %d", item_2);
-		puts("");
-		puts("");
-		printf("Comando: ");
-		gets(command);
-		doCommand(&q, command, maze, x_2, y_2, &item_1, &item_2);
 	}
+
+//	while (goal[0] == 3 || goal[1] == 4 || goal[2] == 5) {
+	system("cls");
+
+//		printMaze(rowLength, colLength, maze, playerDirection, &playerX,
+//				&playerY);
+
+	puts("");
+	puts("");
+//		printf("item 1: %d", numberItem1);
+//		printf("item 2: %d", numberItem1);
+	puts("");
+	puts("");
+	printf("Comando: ");
+//	(command);
+//		doCommand(&q, command, maze, x_2, y_2, &item_1, &item_2);
+//	}
 
 	if (goal[0] != 3 && goal[1] != 4 && goal[2] != 5) {
 		printf("voce venceu!!");
@@ -72,73 +91,84 @@ int main() {
 		printf("Game over!");
 	}
 
+	puts("Stopped");
+
 	return 0;
 }
 
-int *fillMaze(FILE *f, char fileName[100], int (*maze)[50], int *rowLength,
+int fillMaze(FILE *f, int (*maze)[50], int *rowLength,
 		int *colLength, int *goal, int *errorStatus) {
-	f = fopen(fileName, "r");
-	if (!f) {
-		errorStatus[0] = 1;
-		return errorStatus;
-	}
-	// getting the data from file
-	fscanf(f, "%d", rowLength);
-	fscanf(f, "%d", colLength);
-	if (*rowLength < 1 || *rowLength > 50 || *colLength < 1 || *colLength > 50) {
-		errorStatus[2] = 1;
-	}
-	int i, j;
-	// init flag for goals. If in the end of for loop the flag > 1, has more than 1 same goal;
-	goal[0] = 0;
-	goal[1] = 0;
-	goal[2] = 0;
-	for (i = 0; i < *rowLength; i++) {
-		for (j = 0; j < *colLength; j++) {
-			fscanf(f, "%d", &maze[i][j]);
-			// get the goal position and increment the flag
-			switch (maze[i][j]) {
-			case 3:
-				goal[0][0] = &maze[i][j];
-				goal[0][1]++;
-				break;
-			case 4:
-				goal[1][0] = &maze[i][j];
-				goal[1][1]++;
-				break;
-			case 5:
-				goal[2][0] = &maze[i][j];
-				goal[2][1]++;
-				break;
-			}
-			if (maze[i][j] < 0 || maze[i][j] > 9) {
-				errorStatus[4] = 1;
-			}
+	int c; // each char
+	// init variables
+	*rowLength = 0;
+	*colLength = 0;
+	int row = -1;
+	int col = -1;
+	int *pRowAndCol = rowLength;
+	// getting the data from file. Get each char
+	while ((c = fgetc(f)) != EOF) {
+		// to skip the CR
+		if (c == 13) {
+			continue;
 		}
-	}
-	// print the error with goal flag
-	for (int i = 0; i < 3; ++i) {
-		if (goal[i][1] > 1) {
-			errorStatus[3] = 1;
+		// get the first line. i.e. row and column numbers
+		if (row == -1) {
+			// when finish the entire number
+			if (c == 32) {
+				pRowAndCol = colLength;
+				continue;
+			}
+			if (c == 10) {
+				row++;
+				continue;
+			}
+			// get composite number
+			if (*pRowAndCol == 0) {
+				*pRowAndCol = c - '0';
+			} else {
+				*pRowAndCol *= 10;
+				*pRowAndCol += (c - '0');
+			}
+			printf("%d\n", *pRowAndCol);
+			continue;
 		}
+		// get the Maze
+		// skip the space
+		if (c == 32) {
+			continue;
+		}
+		// when break line
+		if (c == '\n') {
+			row++;
+			if (col != *colLength) {
+				//TODO throw an error
+			}
+			col = -1;
+			continue;
+		}
+		col++;
+//		printf("maze[%d][%d] = %c\n", row, col, c); // DEBUG
+		maze[row][col] = c - '0';
 	}
+
+	fclose(f);
 
 	return errorStatus;
 }
 
-void printMaze(int rowLength, int colLength, int maze[], int playerDirection,
-		int *playerX, int * playerY) {
-	int i, j;
-	for (i = 0; i < rowLength; i++) {
-		for (j = 0; j < colLength; j++) {
-			if (maze[i][j] == 2) {
-				*playerX = j;
-				*playerY = i;
-			}
-			printMazeUnit(maze[i][j], playerDirection);
-		}
-		printf("\n");
-	}
+void printMaze(int rowLength, int colLength, int maze[50][50],
+		int playerDirection, int *playerX, int *playerY) {
+//	int i, j;
+//	for (i = 0; i < rowLength; i++) {
+//		for (j = 0; j < colLength; j++) {
+//			if (maze[i][j] == 2) {
+//				*playerX = j;
+//				*playerY = i;
+//			}
+//			printMazeUnit(maze[i][j], playerDirection);
+//		}
+//		printf("\n");
+//	}
 }
 
 char getPlayerDirection(int playerDirection, char command[]) {
