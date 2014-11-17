@@ -1,16 +1,21 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 // function sign declaration
-void doCommand(int *b, char c[], int m[50][50], int xj, int yj, int *item1,
-		int *item2);
-int fillMaze(FILE *f, int (*maze)[50], int *rowLength,
-		int *colLength, int *goal, int *errorStatus);
-
+void fillMaze(FILE *f, int (*maze)[50], int *rowLength, int *colLength,
+		int *goal, int *errorStatus);
 void printMaze(int rowLength, int colLength, int maze[50][50],
 		int playerDirection, int *playerX, int *playerY);
 void printMazeUnit(int unit, int playerDirection);
+char getPlayerDirection(int playerDirection);
+int hasGoal(int goal[3]);
+void doCommand(int (*maze)[50], char command[], int *playerDirection,
+		int *playerX, int *playerY, int *numberItem1, int *numberItem2);
+void collect(int (*maze)[50], int playerDirection, int itemX, int itemY,
+		int *numberItem1, int *numberItem2);
+void useItem(int (*maze)[50], int playerDirection, int itemX, int itemY,
+		int *numberItem);
 
 int main() {
 	// configurations
@@ -22,20 +27,18 @@ int main() {
 	int colLength, rowLength;
 	int playerDirection = 0, playerX, playerY;
 	int numberItem1 = 0;
-	int nubmerItem2 = 0;
+	int numberItem2 = 0;
 	char command[20];
-	int *goal[3];
-	int errorStatus[5] = { 0, 0, 0, 0, 0 };
+	int goal[3] = { 1, 1, 1 };
+	int errorStatus[5] = { };
 
 	puts("Started");
 
 	file = fopen(fileName, "r");
 	if (!file) {
 		printf("Error to open the file: %s", fileName);
-		exit(0);
 	}
-	fillMaze(file, maze, &rowLength, &colLength, &goal[0],
-			errorStatus);
+	fillMaze(file, maze, &rowLength, &colLength, goal, errorStatus);
 
 	if (errorStatus[0]) {
 		puts("Could not open file");
@@ -60,33 +63,34 @@ int main() {
 		return 0;
 	}
 
-	// test fillMaze
-	for (int i = 0; i < rowLength; ++i) {
-		for (int j = 0; j < colLength; ++j) {
-			printf("%d", maze[i][j]);
-		}
-		puts("");
-	}
-
-//	while (goal[0] == 3 || goal[1] == 4 || goal[2] == 5) {
-	system("cls");
-
-//		printMaze(rowLength, colLength, maze, playerDirection, &playerX,
-//				&playerY);
-
-	puts("");
-	puts("");
-//		printf("item 1: %d", numberItem1);
-//		printf("item 2: %d", numberItem1);
-	puts("");
-	puts("");
-	printf("Comando: ");
-//	(command);
-//		doCommand(&q, command, maze, x_2, y_2, &item_1, &item_2);
+	// DEBUG test fillMaze
+//	for (int i = 0; i < rowLength; ++i) {
+//		for (int j = 0; j < colLength; ++j) {
+//			printf("%d", maze[i][j]);
+//		}
+//		puts("");
 //	}
 
-	if (goal[0] != 3 && goal[1] != 4 && goal[2] != 5) {
-		printf("voce venceu!!");
+	while (hasGoal(goal)) {
+//		system("cls");  // only Microsoft Windows
+//		system("clear");  // only to linux
+
+		printMaze(rowLength, colLength, maze, playerDirection, &playerX,
+				&playerY);
+
+		puts("");
+		puts("");
+		printf("item 1: %d\n", numberItem1);
+		printf("item 2: %d\n", numberItem2);
+		puts("");
+		printf("Command: ");
+		fgets(command, 20, stdin);
+		doCommand(maze, command, &playerDirection, &playerX, &playerY,
+				&numberItem1, &numberItem2);
+	}
+
+	if (hasGoal(goal) == 0) {
+		printf("You win!");
 	} else {
 		printf("Game over!");
 	}
@@ -96,8 +100,8 @@ int main() {
 	return 0;
 }
 
-int fillMaze(FILE *f, int (*maze)[50], int *rowLength,
-		int *colLength, int *goal, int *errorStatus) {
+void fillMaze(FILE *f, int (*maze)[50], int *rowLength, int *colLength,
+		int *goal, int *errorStatus) {
 	int c; // each char
 	// init variables
 	*rowLength = 0;
@@ -105,6 +109,7 @@ int fillMaze(FILE *f, int (*maze)[50], int *rowLength,
 	int row = -1;
 	int col = -1;
 	int *pRowAndCol = rowLength;
+//	int goalNumber[3] = { };
 	// getting the data from file. Get each char
 	while ((c = fgetc(f)) != EOF) {
 		// to skip the CR
@@ -129,9 +134,9 @@ int fillMaze(FILE *f, int (*maze)[50], int *rowLength,
 				*pRowAndCol *= 10;
 				*pRowAndCol += (c - '0');
 			}
-			printf("%d\n", *pRowAndCol);
 			continue;
 		}
+
 		// get the Maze
 		// skip the space
 		if (c == 32) {
@@ -143,64 +148,31 @@ int fillMaze(FILE *f, int (*maze)[50], int *rowLength,
 			if (col != *colLength) {
 				//TODO throw an error
 			}
-			col = -1;
+			col = -1; // reset the column
 			continue;
 		}
 		col++;
 //		printf("maze[%d][%d] = %c\n", row, col, c); // DEBUG
 		maze[row][col] = c - '0';
+		//TODO get the number of each goal
 	}
 
 	fclose(f);
-
-	return errorStatus;
 }
 
 void printMaze(int rowLength, int colLength, int maze[50][50],
 		int playerDirection, int *playerX, int *playerY) {
-//	int i, j;
-//	for (i = 0; i < rowLength; i++) {
-//		for (j = 0; j < colLength; j++) {
-//			if (maze[i][j] == 2) {
-//				*playerX = j;
-//				*playerY = i;
-//			}
-//			printMazeUnit(maze[i][j], playerDirection);
-//		}
-//		printf("\n");
-//	}
-}
-
-char getPlayerDirection(int playerDirection, char command[]) {
-	char direction = 'v';
-
-	if (command) {
-		if (strcmp(command, "right") == 0) {
-			playerDirection++;
-		} else if (strcmp(command, "left") == 0) {
-			playerDirection += 3;
-		} else if (strcmp(command, "back") == 0) {
-			playerDirection += 2;
+	int i, j;
+	for (i = 0; i < rowLength; i++) {
+		for (j = 0; j < colLength; j++) {
+			if (maze[i][j] == 2) {
+				*playerX = j;
+				*playerY = i;
+			}
+			printMazeUnit(maze[i][j], playerDirection);
 		}
+		printf("\n");
 	}
-
-	int rest = playerDirection % 4;
-	switch (rest) {
-	case 0:
-		direction = 'v';
-		break;
-	case 1:
-		direction = '<';
-		break;
-	case 2:
-		direction = '^';
-		break;
-	case 3:
-		direction = '>';
-		break;
-	}
-
-	return direction;
 }
 
 void printMazeUnit(int unit, int playerDirection) {
@@ -209,10 +181,10 @@ void printMazeUnit(int unit, int playerDirection) {
 		printf(" ");
 		break;
 	case 1:
-		printf("x");
+		printf("X");
 		break;
 	case 2:
-		printf("%c", getPlayerDirection(playerDirection, 0));
+		printf("%c", getPlayerDirection(playerDirection));
 		break;
 	case 3:
 	case 4:
@@ -234,73 +206,108 @@ void printMazeUnit(int unit, int playerDirection) {
 	}
 }
 
-void doCommand(int *b, char c[], int m[][50], int xj, int yj, int *item1,
-		int *item2) {
-	char left[] = "turn left", right[] = "turn right", c_180[] = "turn 180",
-			collect[] = "collect", use_1[] = "use 1", use_2[] = "use 2";
-	if (strcmp(c, left) == 0) {
-		*b = *b + 1;
-	} else if (strcmp(c, right) == 0) {
-		*b = *b - 1;
-	} else if (strcmp(c, c_180) == 0) {
-		*b = *b + 2;
-	} else if (strcmp(c, collect) == 0 && *b % 4 == 0 && m[yj + 1][xj] == 8) {
-		(*item1)++;
-		m[yj + 1][xj] = 0;
-	} else if (strcmp(c, collect) == 0 && *b % 4 == 1 && m[yj][xj + 1] == 8) {
-		(*item1)++;
-		m[yj][xj + 1] = 0;
-	} else if (strcmp(c, collect) == 0 && *b % 4 == 2 && m[yj - 1][xj] == 8) {
-		(*item1)++;
-		m[yj - 1][xj] = 0;
-	} else if (strcmp(c, collect) == 0 && *b % 4 == 3 && m[yj][xj - 1] == 8) {
-		(*item1)++;
-		m[yj][xj - 1] = 0;
-	} else if (strcmp(c, collect) == 0 && *b % 4 == 0 && m[yj + 1][xj] == 9) {
-		(*item2)++;
-		m[yj + 1][xj] = 0;
-	} else if (strcmp(c, collect) == 0 && *b % 4 == 1 && m[yj][xj + 1] == 9) {
-		(*item2)++;
-		m[yj][xj + 1] = 0;
-	} else if (strcmp(c, collect) == 0 && *b % 4 == 2 && m[yj - 1][xj] == 9) {
-		(*item2)++;
-		m[yj - 1][xj] = 0;
-	} else if (strcmp(c, collect) == 0 && *b % 4 == 3 && m[yj][xj - 1] == 9) {
-		(*item2)++;
-		m[yj][xj - 1] = 0;
-	} else if (strcmp(c, use_1) == 0 && *b % 4 == 0 && item1 > 0
-			&& m[yj + 1][xj] == 6) {
-		m[yj + 1][xj] = 0;
-		item1--;
-	} else if (strcmp(c, use_1) == 0 && *b % 4 == 1 && item1 > 0
-			&& m[yj][xj + 1] == 6) {
-		m[yj][xj + 1] = 0;
-		item1--;
-	} else if (strcmp(c, use_1) == 0 && *b % 4 == 2 && item1 > 0
-			&& m[yj - 1][xj] == 6) {
-		m[yj - 1][xj] = 0;
-		item1--;
-	} else if (strcmp(c, use_1) == 0 && *b % 4 == 0 && item1 > 0
-			&& m[yj][xj - 1] == 6) {
-		m[yj][xj - 1] = 0;
-		item1--;
-	} else if (strcmp(c, use_2) == 0 && *b % 4 == 0 && item1 > 0
-			&& m[yj + 1][xj] == 7) {
-		m[yj + 1][xj] = 0;
-		item2--;
-	} else if (strcmp(c, use_2) == 0 && *b % 4 == 1 && item1 > 0
-			&& m[yj][xj + 1] == 7) {
-		m[yj][xj + 1] = 0;
-		item2--;
-	} else if (strcmp(c, use_2) == 0 && *b % 4 == 2 && item1 > 0
-			&& m[yj - 1][xj] == 7) {
-		m[yj - 1][xj] = 0;
-		item2--;
-	} else if (strcmp(c, use_2) == 0 && *b % 4 == 3 && item1 > 0
-			&& m[yj][xj - 1] == 7) {
-		m[yj][xj - 1] = 0;
-		item2--;
-	} else {
-		printf("\nERRO: comando invalido!");
+char getPlayerDirection(int playerDirection) {
+	char direction = 'v';
+
+	int rest = playerDirection % 4;
+	switch (rest) {
+	case 0:
+		direction = 'v';
+		break;
+	case 1:
+		direction = '<';
+		break;
+	case 2:
+		direction = '^';
+		break;
+	case 3:
+		direction = '>';
+		break;
 	}
+
+	return direction;
+}
+
+int hasGoal(int goal[3]) {
+	int hasGoal = 0;
+	for (int i = 0; i < 3; ++i) {
+		if (goal[i]) {
+			hasGoal = 1;
+		}
+	}
+	return hasGoal;
+}
+
+void collect(int (*maze)[50], int playerDirection, int itemX, int itemY,
+		int *numberItem1, int *numberItem2) {
+	int rest = playerDirection % 4;
+	switch (rest) {
+	case 0:
+		itemY += 1;
+		break;
+	case 1:
+		itemX -= 1;
+		break;
+	case 2:
+		itemY -= 1;
+		break;
+	case 3:
+		itemX += 1;
+		break;
+	}
+
+	if (maze[itemY][itemX] == 8) {
+		(*numberItem1)++;
+		maze[itemY][itemX] = 0;
+	} else if (maze[itemY][itemX] == 9) {
+		(*numberItem2)++;
+		maze[itemY][itemX] = 0;
+	}
+}
+
+void doCommand(int (*maze)[50], char command[], int *playerDirection,
+		int *playerX, int *playerY, int *numberItem1, int *numberItem2) {
+	char *pCmd;
+	pCmd = strtok(command, " \n");
+	if (pCmd != NULL) {
+		printf("command: %s\nback: %s\nstrcmp: %d\n", pCmd, "turn 180",
+				strcmp(pCmd, "180"));
+
+		// turns
+		if (strcmp(pCmd, "turn") == 0) {
+			pCmd = strtok(NULL, " \n"); // get the next "parameter"
+			if (strcmp(pCmd, "left") == 0) {
+				(*playerDirection) += 3;
+			} else if (strcmp(pCmd, "right") == 0) {
+				(*playerDirection)++;
+			} else if (strcmp(pCmd, "180") == 0) {
+				(*playerDirection) += 2;
+			} else {
+				//TODO throw some error like "invalid command"
+			}
+		}
+		// collect
+		else if (strcmp(pCmd, "collect") == 0) {
+			collect(maze, *playerDirection, *playerX, *playerY, numberItem1,
+					numberItem2);
+		}
+		// useItem
+		else if (strcmp(pCmd, "useItem") == 0) {
+			pCmd = strtok(NULL, " \n"); // get the next "parameter"
+			int *numberItem = NULL;
+			if (((*pCmd) - '0') == 1) {
+				numberItem = numberItem1;
+			} else if (((*pCmd) - '0') == 2) {
+				numberItem = numberItem2;
+			} else {
+				//TODO throw some error like "invalid command"
+			}
+			useItem(maze, *playerDirection, *playerX, *playerY, numberItem);
+		}
+	}
+}
+
+void useItem(int (*maze)[50], int playerDirection, int itemX, int itemY,
+		int *numberItem) {
+
 }
