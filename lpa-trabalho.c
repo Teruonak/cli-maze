@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 // function sign declaration
 void fillMaze(FILE *f, int (*maze)[50], int *rowLength, int *colLength,
@@ -11,11 +12,15 @@ void printMazeUnit(int unit, int playerDirection);
 char getPlayerDirection(int playerDirection);
 int hasGoal(int goal[3]);
 void doCommand(int (*maze)[50], char command[], int *playerDirection,
-		int *playerX, int *playerY, int *amountItem1, int *amountItem2);
+		int playerX, int playerY, int *amountItem1, int *amountItem2);
 void collect(int (*maze)[50], int playerDirection, int playerX, int playerY,
 		int *amountItem1, int *amountItem2);
 void useItem(int (*maze)[50], int playerDirection, int itemX, int itemY,
 		int *amountItem, int numberItem);
+void move(int (*maze)[50], int movements, int playerDirection, int playerX,
+		int playerY);
+void movePlayer(int (*maze)[50], int times, int playerDirection, int *stepX,
+		int *stepY);
 
 int main() {
 	// configurations
@@ -85,7 +90,7 @@ int main() {
 		puts("");
 		printf("Command: ");
 		fgets(command, 20, stdin);
-		doCommand(maze, command, &playerDirection, &playerX, &playerY,
+		doCommand(maze, command, &playerDirection, playerX, playerY,
 				&amountItem1, &amountItem2);
 	}
 
@@ -271,7 +276,7 @@ void collect(int (*maze)[50], int playerDirection, int playerX, int playerY,
 }
 
 void doCommand(int (*maze)[50], char command[], int *playerDirection,
-		int *playerX, int *playerY, int *amountItem1, int *amountItem2) {
+		int playerX, int playerY, int *amountItem1, int *amountItem2) {
 	char *pCmd;
 	pCmd = strtok(command, " \n");
 	if (pCmd == NULL) {
@@ -287,12 +292,12 @@ void doCommand(int (*maze)[50], char command[], int *playerDirection,
 		} else if (strcmp(pCmd, "180") == 0) {
 			(*playerDirection) += 2;
 		} else {
-			exit(0);//TODO throw some error like "invalid command"
+			exit(0); //TODO throw some error like "invalid command"
 		}
 	}
 	// collect
 	else if (strcmp(pCmd, "collect") == 0) {
-		collect(maze, *playerDirection, *playerX, *playerY, amountItem1,
+		collect(maze, *playerDirection, playerX, playerY, amountItem1,
 				amountItem2);
 	}
 	// use
@@ -310,10 +315,22 @@ void doCommand(int (*maze)[50], char command[], int *playerDirection,
 			amountItem = amountItem2;
 			numberItem = 9;
 		} else {
-			exit(0);//TODO throw some error like "invalid command"
+			exit(0); //TODO throw some error like "invalid command"
 		}
-		useItem(maze, *playerDirection, *playerX, *playerY, amountItem,
+		useItem(maze, *playerDirection, playerX, playerY, amountItem,
 				numberItem);
+	}
+	// move
+	else if (strcmp(pCmd, "move") == 0) {
+		pCmd = strtok(NULL, " \n");
+		if (pCmd == NULL) {
+			exit(0); //TODO throw error
+		}
+		if (!isdigit(*pCmd)) {
+			exit(0); //TODO throw error
+		}
+		int movements = ((*pCmd) - '0');
+		move(maze, movements, *playerDirection, playerX, playerY);
 	}
 }
 
@@ -323,12 +340,58 @@ void useItem(int (*maze)[50], int playerDirection, int playerX, int playerY,
 	getNext(playerDirection, &holderItemX, &holderItemY);
 	// do not have the item in maze
 	if (maze[holderItemY][holderItemX] != numberItem) {
-		exit(0);//TODO throw error
+		exit(0); //TODO throw error
 	}
 	// do not have enough amount to use Item
 	if (*amountItem < 1) {
-		exit(0);//TODO throw error
+		exit(0); //TODO throw error
 	}
 	maze[holderItemY][holderItemX] = 0;
 	(*amountItem)--;
+}
+
+void move(int (*maze)[50], int movements, int playerDirection, int playerX,
+		int playerY) {
+	int holderX = playerX, holderY = playerY;
+	movePlayer(maze, movements - 1, playerDirection, &holderX, &holderY);
+	switch (maze[holderY][holderX]) {
+	case 1:
+		puts("Wall"); //TODO error Wall
+		exit(0);
+		break;
+	case 6:
+		puts("B"); //TODO error B
+		exit(0);
+		break;
+	case 7:
+		puts("A"); //TODO A
+		exit(0);
+		break;
+	case 8:
+		puts("1"); //TODO 1
+		exit(0);
+		break;
+	case 9:
+		puts("2"); //TODO 2
+		exit(0);
+		break;
+	}
+	maze[playerY][playerX] = 0;
+	maze[holderY][holderX] = 2;
+}
+
+void movePlayer(int (*maze)[50], int times, int playerDirection, int *stepX,
+		int *stepY) {
+//	int holderItemX = stepX, holderItemY = stepY;
+	getNext(playerDirection, stepX, stepY);
+
+	if (times == 0) {
+		return;
+	}
+
+	if (maze[*stepY][*stepX] != 0 && maze[*stepY][*stepX] != 3
+			&& maze[*stepY][*stepX] != 4 && maze[*stepY][*stepX] != 5) {
+		return;
+	}
+	return movePlayer(maze, times - 1, playerDirection, stepX, stepY);
 }
