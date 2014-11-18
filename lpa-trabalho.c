@@ -21,6 +21,8 @@ void move(int (*maze)[50], int movements, int playerDirection, int playerX,
 		int playerY);
 void movePlayer(int (*maze)[50], int times, int playerDirection, int *stepX,
 		int *stepY);
+void diagmove(int (*maze)[50], char cmd[], int playerDirection, int playerX,
+		int playerY);
 
 int main() {
 	// configurations
@@ -261,6 +263,27 @@ void getNext(int playerDirection, int *x, int *y) {
 	}
 }
 
+int checkMazeUnit(int maze[50][50], int x, int y) {
+	switch (maze[y][x]) {
+	case 1:
+		puts("Wall"); //TODO error Wall
+		return 1;
+	case 6:
+		puts("B"); //TODO error B
+		return 1;
+	case 7:
+		puts("A"); //TODO A
+		return 1;
+	case 8:
+		puts("1"); //TODO 1
+		return 1;
+	case 9:
+		puts("2"); //TODO 2
+		return 1;
+	}
+	return 0;
+}
+
 void collect(int (*maze)[50], int playerDirection, int playerX, int playerY,
 		int *amountItem1, int *amountItem2) {
 	int holderItemX = playerX, holderItemY = playerY;
@@ -332,6 +355,14 @@ void doCommand(int (*maze)[50], char command[], int *playerDirection,
 		int movements = ((*pCmd) - '0');
 		move(maze, movements, *playerDirection, playerX, playerY);
 	}
+	// diagonal move
+	else if (strcmp(pCmd, "diagmove") == 0) {
+		pCmd = strtok(NULL, " \n");
+		if (pCmd == NULL) {
+			exit(0); //TODO throw error
+		}
+		diagmove(maze, pCmd, *playerDirection, playerX, playerY);
+	}
 }
 
 void useItem(int (*maze)[50], int playerDirection, int playerX, int playerY,
@@ -354,35 +385,13 @@ void move(int (*maze)[50], int movements, int playerDirection, int playerX,
 		int playerY) {
 	int holderX = playerX, holderY = playerY;
 	movePlayer(maze, movements - 1, playerDirection, &holderX, &holderY);
-	switch (maze[holderY][holderX]) {
-	case 1:
-		puts("Wall"); //TODO error Wall
-		exit(0);
-		break;
-	case 6:
-		puts("B"); //TODO error B
-		exit(0);
-		break;
-	case 7:
-		puts("A"); //TODO A
-		exit(0);
-		break;
-	case 8:
-		puts("1"); //TODO 1
-		exit(0);
-		break;
-	case 9:
-		puts("2"); //TODO 2
-		exit(0);
-		break;
-	}
+	checkMazeUnit(maze, holderX, holderY);
 	maze[playerY][playerX] = 0;
 	maze[holderY][holderX] = 2;
 }
 
 void movePlayer(int (*maze)[50], int times, int playerDirection, int *stepX,
 		int *stepY) {
-//	int holderItemX = stepX, holderItemY = stepY;
 	getNext(playerDirection, stepX, stepY);
 
 	if (times == 0) {
@@ -394,4 +403,29 @@ void movePlayer(int (*maze)[50], int times, int playerDirection, int *stepX,
 		return;
 	}
 	return movePlayer(maze, times - 1, playerDirection, stepX, stepY);
+}
+
+void diagmove(int (*maze)[50], char cmd[], int playerDirection, int playerX,
+		int playerY) {
+	int FRONT = 0;
+	int RIGHT = 1;
+	int LEFT = 3;
+	int BACK = 2;
+	int moveX = playerX, moveY = playerY;
+	if (strcmp(cmd, "fl") == 0) {
+		getNext(playerDirection + FRONT, &moveX, &moveY);
+		getNext(playerDirection + LEFT, &moveX, &moveY);
+	} else if (strcmp(cmd, "fr") == 0) {
+		getNext(playerDirection + FRONT, &moveX, &moveY);
+		getNext(playerDirection + RIGHT, &moveX, &moveY);
+	} else if (strcmp(cmd, "bl") == 0) {
+		getNext(playerDirection + BACK, &moveX, &moveY);
+		getNext(playerDirection + LEFT, &moveX, &moveY);
+	} else if (strcmp(cmd, "br") == 0) {
+		getNext(playerDirection + BACK, &moveX, &moveY);
+		getNext(playerDirection + RIGHT, &moveX, &moveY);
+	}
+	checkMazeUnit(maze, moveX, moveY);
+	maze[playerY][playerX] = 0;
+	maze[moveY][moveX] = 2;
 }
