@@ -270,10 +270,10 @@ int checkMazeUnit(int maze[50][50], int x, int y) {
 		return 1;
 	case 6:
 		puts("B"); //TODO error B
-		return 1;
+		return 2;
 	case 7:
 		puts("A"); //TODO A
-		return 1;
+		return 3;
 	case 8:
 		puts("1"); //TODO 1
 		return 1;
@@ -385,7 +385,17 @@ void move(int (*maze)[50], int movements, int playerDirection, int playerX,
 		int playerY) {
 	int holderX = playerX, holderY = playerY;
 	movePlayer(maze, movements - 1, playerDirection, &holderX, &holderY);
-	checkMazeUnit(maze, holderX, holderY);
+
+	int status;
+	status = checkMazeUnit(maze, holderX, holderY);
+	if (status == 1) {
+		puts("ERROR: move");//TODO set error
+		return;
+	} else if (status == 2) {
+		puts("ERROR: Die with bomb");//TODO set error Bomba
+	} else if (status == 3) {
+		puts("ERROR: Die with trap");//TODO set error Armadilha
+	}
 	maze[playerY][playerX] = 0;
 	maze[holderY][holderX] = 2;
 }
