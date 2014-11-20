@@ -12,17 +12,18 @@ void printMazeUnit(int unit, int playerDirection);
 char getPlayerDirection(int playerDirection);
 int hasGoal(int goal[3]);
 void doCommand(int (*maze)[50], char command[], int *goal, int *playerDirection,
-		int playerX, int playerY, int *amountItem1, int *amountItem2);
-void collect(int (*maze)[50], int playerDirection, int playerX, int playerY,
+		int playerX, int playerY, int *amountItem1, int *amountItem2,
+		char *information);
+void collect(int (*maze)[50], char *information, int playerDirection, int playerX, int playerY,
 		int *amountItem1, int *amountItem2);
-void useItem(int (*maze)[50], int playerDirection, int itemX, int itemY,
+void useItem(int (*maze)[50], char *information, int playerDirection, int itemX, int itemY,
 		int *amountItem, int numberItem);
-void move(int (*maze)[50], int *goal, int movements, int playerDirection, int playerX,
-		int playerY);
+void move(int (*maze)[50], int *goal, int movements, char *information,
+		int playerDirection, int playerX, int playerY);
 void movePlayer(int (*maze)[50], int times, int playerDirection, int *stepX,
 		int *stepY);
-void diagmove(int (*maze)[50], char cmd[], int playerDirection, int playerX,
-		int playerY);
+void diagmove(int (*maze)[50], char cmd[], char *information,
+		int playerDirection, int playerX, int playerY);
 
 int main() {
 	// configurations
@@ -38,35 +39,36 @@ int main() {
 	char command[20];
 	int goal[3] = { 1, 1, 1 };
 	int errorStatus[5] = { };
+	char information[50] = "";
 
 	puts("Started");
 
 	file = fopen(fileName, "r");
 	if (!file) {
-		printf("Error to open the file: %s", fileName);
+		printf("ERROR: can't open the file: %s", fileName);
 	}
 	fillMaze(file, maze, &rowLength, &colLength, goal, errorStatus);
 
 	if (errorStatus[0]) {
-		puts("Could not open file");
+		puts("ERROR: Could not open file");
 		return 0;
 	}
 	if (errorStatus[1]) {
-		printf("The file %s do not follow the pattern.", fileName);
+		printf("ERROR: The file %s do not follow the pattern.", fileName);
 		return 0;
 	}
 	if (errorStatus[2]) {
 		printf(
-				"The length of row: %d or column: %d is lower than 1 or greater than 50",
+				"ERROR: The length of row: %d or column: %d is lower than 1 or greater than 50",
 				rowLength, colLength);
 		return 0;
 	}
 	if (errorStatus[3]) {
-		puts("Has more than one goal.");
+		puts("ERROR: Has more than one goal.");
 		return 0;
 	}
 	if (errorStatus[4]) {
-		puts("");
+		puts("ERROR: ");
 		return 0;
 	}
 
@@ -76,11 +78,6 @@ int main() {
 //			printf("%d", maze[i][j]);
 //		}
 //		puts("");
-//	}
-
-	// DEBUG verify goal
-//	for (int k = 0; k < 3; ++k) {
-//		printf("goal[%d]: %d\n",k, goal[k]);
 //	}
 
 	while (hasGoal(goal)) {
@@ -95,14 +92,13 @@ int main() {
 		printf("item 1: %d\n", amountItem1);
 		printf("item 2: %d\n", amountItem2);
 		puts("");
+		puts("");
+		puts(information);
+		puts("");
 		printf("Command: ");
 		fgets(command, 20, stdin);
 		doCommand(maze, command, goal, &playerDirection, playerX, playerY,
-				&amountItem1, &amountItem2);
-		// DEBUG verify goal
-		for (int k = 0; k < 3; ++k) {
-			printf("goal[%d]: %d\n", k, goal[k]);
-		}
+				&amountItem1, &amountItem2, information);
 	}
 
 	if (hasGoal(goal) == 0) {
@@ -282,51 +278,60 @@ void getNext(int playerDirection, int *x, int *y) {
 	}
 }
 
-int checkMazeUnit(int maze[50][50], int x, int y) {
+int checkMazeUnit(int maze[50][50], int x, int y, char *information) {
 	switch (maze[y][x]) {
-	case 1:
-		puts("Wall"); //TODO error Wall
-		return 1;
-	case 6:
-		puts("B"); //TODO error B
-		return 2;
-	case 7:
-		puts("A"); //TODO A
-		return 3;
-	case 8:
-		puts("1"); //TODO 1
-		return 1;
-	case 9:
-		puts("2"); //TODO 2
-		return 1;
+	case 1: // Wall
+		strcpy(information, "ERROR: You can't through walls");
+		return maze[y][x];
+	case 6: // B
+		strcpy(information, "Game Over: Die with bomb");
+		return maze[y][x];
+	case 7: // A
+		strcpy(information, "Game Over: Die with trap");
+		return maze[y][x];
+	case 8: // 1
+		strcpy(information, "ERROR: You can't through the item 1");
+		return maze[y][x];
+	case 9: // 2
+		strcpy(information, "ERROR: You can't through the item 2");
+		return maze[y][x];
 	}
+
 	return 0;
 }
 
-void collect(int (*maze)[50], int playerDirection, int playerX, int playerY,
+void collect(int (*maze)[50], char *information, int playerDirection, int playerX, int playerY,
 		int *amountItem1, int *amountItem2) {
 	int holderItemX = playerX, holderItemY = playerY;
 	getNext(playerDirection, &holderItemX, &holderItemY);
 
 	if (maze[holderItemY][holderItemX] == 8) {
 		(*amountItem1)++;
+		strcpy(information, "Item 1 collected");
 		maze[holderItemY][holderItemX] = 0;
 	} else if (maze[holderItemY][holderItemX] == 9) {
 		(*amountItem2)++;
+		strcpy(information, "Item 2 collected");
 		maze[holderItemY][holderItemX] = 0;
 	}
 }
 
 void doCommand(int (*maze)[50], char command[], int *goal, int *playerDirection,
-		int playerX, int playerY, int *amountItem1, int *amountItem2) {
+		int playerX, int playerY, int *amountItem1, int *amountItem2,
+		char *information) {
 	char *pCmd;
+	strcpy(information, "");
 	pCmd = strtok(command, " \n");
 	if (pCmd == NULL) {
-		exit(0); //TODO throw error
+		strcpy(information, "ERROR: Invalid command! Please enter a command or enter 'help' for more information");
 	}
 	// turns
 	if (strcmp(pCmd, "turn") == 0) {
 		pCmd = strtok(NULL, " \n"); // get the next "parameter"
+		if (pCmd == NULL) {
+			strcpy(information, "INFO: Try 'turn [left,right,180]' e.g. 'turn left'");
+			return;
+		}
 		if (strcmp(pCmd, "left") == 0) {
 			(*playerDirection) += 3;
 		} else if (strcmp(pCmd, "right") == 0) {
@@ -334,19 +339,20 @@ void doCommand(int (*maze)[50], char command[], int *goal, int *playerDirection,
 		} else if (strcmp(pCmd, "180") == 0) {
 			(*playerDirection) += 2;
 		} else {
-			exit(0); //TODO throw some error like "invalid command"
+			strcpy(information, "Invalid command!");
 		}
 	}
 	// collect
 	else if (strcmp(pCmd, "collect") == 0) {
-		collect(maze, *playerDirection, playerX, playerY, amountItem1,
+		collect(maze, information, *playerDirection, playerX, playerY, amountItem1,
 				amountItem2);
 	}
 	// use
 	else if (strcmp(pCmd, "use") == 0) {
 		pCmd = strtok(NULL, " \n"); // get the next "parameter"
 		if (pCmd == NULL) {
-			exit(0); //TODO throw error
+			strcpy(information, "INFO: Try 'use [1,2]' e.g. 'use 2'");
+			return;
 		}
 		int *amountItem = NULL;
 		int numberItem = 0;
@@ -357,63 +363,73 @@ void doCommand(int (*maze)[50], char command[], int *goal, int *playerDirection,
 			amountItem = amountItem2;
 			numberItem = 9;
 		} else {
-			exit(0); //TODO throw some error like "invalid command"
+			strcpy(information, "ERROR: Invalid command! Try 'use [1,2]' e.g. 'use 2'");
+			return;
 		}
-		useItem(maze, *playerDirection, playerX, playerY, amountItem,
+		useItem(maze, information, *playerDirection, playerX, playerY, amountItem,
 				numberItem);
 	}
 	// move
 	else if (strcmp(pCmd, "move") == 0) {
 		pCmd = strtok(NULL, " \n");
 		if (pCmd == NULL) {
-			exit(0); //TODO throw error
+			strcpy(information, "INFO: Try 'move [0-9]' e.g. 'move 3'");
+			return;
 		}
 		if (!isdigit(*pCmd)) {
-			exit(0); //TODO throw error
+			strcpy(information, "ERROR: Invalid command! Put a digit [0-9]");
+			return;
 		}
 		int movements = ((*pCmd) - '0');
-		move(maze, goal, movements, *playerDirection, playerX, playerY);
+		move(maze, goal, movements, information, *playerDirection, playerX,
+				playerY);
 	}
 	// diagonal move
 	else if (strcmp(pCmd, "diagmove") == 0) {
 		pCmd = strtok(NULL, " \n");
 		if (pCmd == NULL) {
-			exit(0); //TODO throw error
+			strcpy(information, "INFO: Try 'diagmove [fr,fl,br,bl]' e.g. 'diagmove fl'");
+			return;
 		}
-		diagmove(maze, pCmd, *playerDirection, playerX, playerY);
+		diagmove(maze, pCmd, information, * playerDirection, playerX, playerY);
+	} else {
+		strcpy(information, "Invalid command!");
 	}
 }
 
-void useItem(int (*maze)[50], int playerDirection, int playerX, int playerY,
+void useItem(int (*maze)[50], char *information, int playerDirection, int playerX, int playerY,
 		int *amountItem, int numberItem) {
 	int holderItemX = playerX, holderItemY = playerY;
 	getNext(playerDirection, &holderItemX, &holderItemY);
+
+	int mazeUnit = maze[holderItemY][holderItemX];
 	// do not have the item in maze
-	if (maze[holderItemY][holderItemX] != numberItem) {
+	if ((mazeUnit != 6 && numberItem == 8 ) || (mazeUnit != 7 && numberItem == 9 ) || (mazeUnit != 6 && mazeUnit != 7)) {
 		exit(0); //TODO throw error
+		strcpy(information, "ERROR: Invalid command! Use 1 for B and 2 for A");
+		return;
 	}
 	// do not have enough amount to use Item
 	if (*amountItem < 1) {
-		exit(0); //TODO throw error
+		strcpy(information, "ERROR: You don't have an enough item amount");
+		return;
 	}
+	strcpy(information, "Obstacle destroyed");
 	maze[holderItemY][holderItemX] = 0;
 	(*amountItem)--;
 }
 
-void move(int (*maze)[50], int *goal, int movements, int playerDirection, int playerX,
-		int playerY) {
+void move(int (*maze)[50], int *goal, int movements, char *information,
+		int playerDirection, int playerX, int playerY) {
 	int holderX = playerX, holderY = playerY;
+	strcpy(information, "");
 	movePlayer(maze, movements - 1, playerDirection, &holderX, &holderY);
 
 	int status;
-	status = checkMazeUnit(maze, holderX, holderY);
-	if (status == 1) {
-		puts("ERROR: move");//TODO set error
+	status = checkMazeUnit(maze, holderX, holderY, information);
+
+	if (status == 1 || status == 8 || status == 9) {
 		return;
-	} else if (status == 2) {
-		puts("ERROR: Die with bomb");//TODO set error Bomba
-	} else if (status == 3) {
-		puts("ERROR: Die with trap");//TODO set error Armadilha
 	}
 
 	if (maze[holderY][holderX] == 3) {
@@ -443,8 +459,8 @@ void movePlayer(int (*maze)[50], int times, int playerDirection, int *stepX,
 	return movePlayer(maze, times - 1, playerDirection, stepX, stepY);
 }
 
-void diagmove(int (*maze)[50], char cmd[], int playerDirection, int playerX,
-		int playerY) {
+void diagmove(int (*maze)[50], char cmd[], char *information,
+		int playerDirection, int playerX, int playerY) {
 	int FRONT = 0;
 	int RIGHT = 1;
 	int LEFT = 3;
@@ -463,7 +479,13 @@ void diagmove(int (*maze)[50], char cmd[], int playerDirection, int playerX,
 		getNext(playerDirection + BACK, &moveX, &moveY);
 		getNext(playerDirection + RIGHT, &moveX, &moveY);
 	}
-	checkMazeUnit(maze, moveX, moveY);
+	int status;
+	status = checkMazeUnit(maze, moveX, moveY, information);
+
+	if (status == 1 || status == 8 || status == 9) {
+		return;
+	}
+
 	maze[playerY][playerX] = 0;
 	maze[moveY][moveX] = 2;
 }
